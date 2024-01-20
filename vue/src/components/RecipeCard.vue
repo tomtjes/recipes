@@ -287,7 +287,9 @@ export default {
 
 .content-details p {
     color: #fff;
-    font-size: 0.8em;
+    font-size: 0.6rem;
+    line-height: 0.8rem;
+    margin-bottom: 0;
 }
 
 .fadeIn-bottom {
