@@ -223,8 +223,8 @@ export default {
 @media (max-width: 991.98px) {
     #switcher .btn-circle {
         position: fixed;
-        top: 12px;
-        right: 79px;
+        top: var(--padding-top); 
+        right: 5rem;
         color: rgba(46, 46, 46, 0.5);
         width: 56px;
         height: 40px;
