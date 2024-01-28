@@ -224,7 +224,7 @@ export default {
     #switcher .btn-circle {
         position: fixed;
         top: var(--padding-top); 
-        right: 5rem;
+        right: 79px;
         color: rgba(46, 46, 46, 0.5);
         width: 56px;
         height: 40px;
