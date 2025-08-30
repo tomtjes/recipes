@@ -16,16 +16,20 @@
             <span>
               <i class="fas fa-check text-success fa-fw" v-if="a.checked"></i>
               <i class="fas fa-clock-rotate-left text-info fa-fw" v-if="a.delayed"></i>
-              <span :class="{ 'text-disabled': a.checked || a.delayed }" class="text-no-wrap">
-                <span class="item__amount" :class="escapeCSS('amount--' + a.amount)" v-if="amounts.length > 1 || (amounts.length == 1 && a.amount != 1)">{{ $n(a.amount) }}</span>
-                <span class="ms-1 item__unit" :class="escapeCSS('unit--' + a.unit.name)" v-if="a.unit">{{ a.unit.name }}</span>
-              </span>
+              <b>
+                <span :class="{ 'text-disabled': a.checked || a.delayed }" class="text-no-wrap">
+                  <span class="item__amount" :class="escapeCSS('amount--' + a.amount)" v-if="amounts.length > 1 || (amounts.length == 1 && a.amount != 1)">{{
+                    $n(a.amount)
+                  }}</span>
+                  <span class="ms-1 item__unit" :class="escapeCSS('unit--' + a.unit.name)" v-if="a.unit">{{ pluralString(a.unit, a.amount) }}</span>
+                </span>
+              </b>
             </span>
             <br />
           </span>
         </div>
         <div class="d-flex flex-column flex-grow-1 align-self-center item__food" :class="escapeCSS('food--' + shoppingListFood.food.name)">
-          {{ shoppingListFood.food.name }} <br />
+          {{ pluralString(shoppingListFood.food, amounts.length > 1 || (amounts.length == 1 && amounts[0].amount > 1) ? 2 : 1) }} <br />
           <span v-if="infoRow"
             ><small class="text-disabled item__recipe">{{ infoRow }}</small></span
           >
@@ -63,6 +67,7 @@ import { ErrorMessageType, useMessageStore } from "@/stores/MessageStore"
 import { IShoppingListFood, ShoppingLineAmount } from "@/types/Shopping"
 import { isDelayed, isEntryVisible, isShoppingListFoodDelayed, isShoppingListFoodVisible } from "@/utils/logic_utils"
 import ShoppingLineItemDialog from "@/components/dialogs/ShoppingLineItemDialog.vue"
+import { pluralString } from "@/utils/model_utils.ts"
 import { escapeCSS } from "../../utils/utils"
 
 const emit = defineEmits(["clicked"])
