@@ -142,7 +142,7 @@
               :title="$t('CreatedBy')"
               :subtitle="recipe.createdBy.displayName"
               prepend-icon="fa-solid fa-user"
-              :to="{name: 'SearchPage', query: {createdby: recipe.createdBy.id!}}"
+              :to="(useUserPreferenceStore().isAuthenticated) ?  {name: 'SearchPage', query: {createdby: recipe.createdBy.id!}}: undefined"
             >
             </v-card>
           </v-col>
@@ -152,7 +152,7 @@
               :title="$t('Created')"
               :subtitle="DateTime.fromJSDate(recipe.createdAt).toLocaleString(DateTime.DATETIME_MED)"
               prepend-icon="$create"
-              :to="{ name: 'SearchPage', query: { createdon: DateTime.fromJSDate(recipe.createdAt).toISODate() } }"
+              :to="useUserPreferenceStore().isAuthenticated ? { name: 'SearchPage', query: { createdon: DateTime.fromJSDate(recipe.createdAt).toISODate() } } : undefined"
             >
             </v-card>
           </v-col>
@@ -162,7 +162,7 @@
               :title="$t('Updated')"
               :subtitle="DateTime.fromJSDate(recipe.updatedAt).toLocaleString(DateTime.DATETIME_MED)"
               prepend-icon="$edit"
-              :to="{ name: 'SearchPage', query: { updatedon: DateTime.fromJSDate(recipe.updatedAt).toISODate() } }"
+              :to="useUserPreferenceStore().isAuthenticated ? { name: 'SearchPage', query: { updatedon: DateTime.fromJSDate(recipe.updatedAt).toISODate() } } : undefined"
             >
             </v-card>
           </v-col>
