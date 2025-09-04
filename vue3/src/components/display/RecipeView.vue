@@ -30,8 +30,7 @@
         </v-card>
       </v-card>
 
-      <!-- only display values if not all are default (e.g. for external recipes) -->
-      <v-card class="mt-1 recipe__meta" v-if="recipe.workingTime != 0 || recipe.waitingTime != 0 || recipe.servings != 1">
+      <v-card class="mt-1 recipe__meta">
         <v-container>
           <v-row class="text-center text-body-2">
             <v-col class="pt-1 pb-1 recipe__worktime" :class="'worktime--' + String(recipe.workingTime)">
@@ -65,7 +64,7 @@
         <v-col cols="4">
           <v-card class="h-100 d-flex flex-column recipe__frontmatter">
             <v-card-text class="flex-grow-1">
-              <div class="recipe__title">
+              <div class="d-flex recipe__title">
                 <h1 class="flex-column flex-grow-1">{{ recipe.name }}</h1>
                 <recipe-context-menu
                   :recipe="recipe"
