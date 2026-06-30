@@ -50,7 +50,7 @@ import {tr} from "vuetify/locale";
 //TODO mode ideas "last year/month/cooked long ago"
 const props = defineProps(
     {
-        mode: {type: String as PropType<'recent' | 'new' | 'keyword' | 'rating' | 'random' | 'created_by'>, required: true},
+        mode: {type: String as PropType<'recent' | 'new' | 'keyword' | 'rating' | 'random' | 'created_by' | 'season'>, required: true},
         skeletons: {type: Number, default: 0},
     }
 )
@@ -86,6 +86,8 @@ const title = computed(() => {
                 return t('CreatedBy') + ' ' + createdByUser.value.displayName
             }
             return t('CreatedBy')
+        case 'season':
+            return t('Seasonal')
     }
 })
 
@@ -106,6 +108,8 @@ const icon = computed(() => {
             return 'fa-solid fa-tags'
         case 'created_by':
             return 'fa-solid fa-user'
+        case 'season':
+            return 'fa-solid fa-seedling'
     }
 })
 
@@ -163,6 +167,9 @@ function loadRecipes() {
                 }
             })
             return;
+        case 'season':
+            requestParameters.season = 'true'
+            break;
     }
     doRecipeRequest(requestParameters)
 }

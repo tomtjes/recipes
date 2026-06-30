@@ -8,6 +8,7 @@ extend-ignore =
     E712
 exclude =
     .git,
+    .py,
     **/__pycache__,
         **/.git,
         **/.svn,

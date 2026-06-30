@@ -818,6 +818,15 @@ const filters = ref({
         items: [{value: "true", title: 'Yes'}, {value: "false", title: 'No'}],
         modelValue: useRouteQuery('makenow', "false"),
     },
+    seasonon: {
+        id: 'seasonon',
+        label: t('Seasonality'),
+        hint: t('Only recipes users have typically cooked around selected time of year'),
+        enabled: false,
+        default: null,
+        is: VDateInput,
+        modelValue: useRouteQuery('seasonon', null, {transform: routeQueryDateTransformer}),
+    },
     cookedonGte: {
         id: 'cookedonGte',
         label: `${t('Cooked')} ${t('after')}`,

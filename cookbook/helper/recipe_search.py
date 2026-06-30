@@ -3,8 +3,9 @@ from datetime import date, timedelta
 
 from django.contrib.postgres.search import SearchQuery, SearchRank, SearchVector, TrigramSimilarity
 from django.core.cache import cache
-from django.db.models import Avg, Case, Count, Exists, F, Max, OuterRef, Q, Subquery, Value, When
-from django.db.models.functions import Coalesce, Lower, Substr
+from django.db.models import Avg, Case, Count, Exists, F, FloatField, Max, OuterRef, Q, Subquery, Value, When
+from django.db.models.expressions import ExpressionWrapper, Func
+from django.db.models.functions import Abs, Cast, Coalesce, Least, Lower, Substr
 from django.utils import timezone, translation
 
 from cookbook.helper.HelperFunctions import Round, str2bool
@@ -89,6 +90,17 @@ class RecipeSearch():
         self._timescooked_gte = self._params.get('timescooked_gte', None)
         self._timescooked_lte = self._params.get('timescooked_lte', None)
 
+        # Seasonal recipes (mean cook date near a reference date)
+        self._season = str2bool(self._params.get('season', None))
+        self._season_window_days = 84  # ±6 weeks
+        # Optional reference date for season filter (YYYY-MM-DD)
+        try:
+            self._seasonon = self._params.get('seasonon', None)
+            if isinstance(self._seasonon, str) and self._seasonon:
+                self._seasonon = date.fromisoformat(self._seasonon)
+        except Exception:
+            self._seasonon = None
+
         self._createdon = self._params.get('createdon', None)
         self._createdon_gte = self._params.get('createdon_gte', None)
         self._createdon_lte = self._params.get('createdon_lte', None)
@@ -159,6 +171,7 @@ class RecipeSearch():
         self._created_by_filter(created_by_user_id=self._createdby)
         self._favorite_recipes()
         self._new_recipes()
+        self._seasonal()
         self.keyword_filters(**self._keywords)
         self.food_filters(**self._foods)
         self.book_filters(**self._books)
@@ -169,6 +182,97 @@ class RecipeSearch():
         self._makenow_filter(missing=self._makenow)
         self.string_filters(string=self._string)
         return self._queryset.filter(space=self._request.space).order_by(*self.orderby)
+
+    def _seasonal(self):
+        """
+        Filters to recipes whose mean cook date (circular mean over day-of-year across all users in the space)
+        falls within ±season_window_days of _seasonon or today, and sorts by closeness to date.
+        """
+        # Run seasonal filter if explicitly enabled or a reference date is provided
+        if not self._season and not getattr(self, '_seasonon', None):
+            return
+
+        ref_date = self._seasonon or timezone.now().date()
+        date_doy = ref_date.timetuple().tm_yday # 1..366 (day of year)
+        TWO_PI = 6.283185307179586
+
+        # Only consider cook logs within the same space; across all users (no created_by filter)
+        cooklog_space_filter = Q(cooklog__space=self._request.space)
+
+        # Count cook logs per recipe to exclude recipes with no data
+        self._queryset = self._queryset.annotate(
+            cook_count=Count('cooklog__pk', filter=cooklog_space_filter, distinct=True)
+        )
+
+        if self._postgres:
+            # Postgres path: compute circular mean using sin/cos over day-of-year
+            # angle = 2π * (doy / 365)
+
+            # Use date_part('doy', timestamp) to get day-of-year reliably on Postgres
+            doy_expr = Func(Value('doy'), F('cooklog__created_at'), function='date_part', output_field=FloatField())
+            angle = ExpressionWrapper((doy_expr / Value(365.0)) * Value(TWO_PI), output_field=FloatField())
+
+            avg_sin = Avg(Func(angle, function='sin'), filter=cooklog_space_filter)
+            avg_cos = Avg(Func(angle, function='cos'), filter=cooklog_space_filter)
+
+            # Annotate averages first
+            self._queryset = self._queryset.annotate(
+                avg_sin=avg_sin,
+                avg_cos=avg_cos,
+            )
+
+            # mean_angle = atan2(avg_sin, avg_cos)
+            self._queryset = self._queryset.annotate(
+                mean_angle=Func(F('avg_sin'), F('avg_cos'), function='atan2', output_field=FloatField())
+            )
+
+            # Normalize angle to [0, 2π)
+            self._queryset = self._queryset.annotate(
+                mean_angle_pos=Case(
+                    When(mean_angle__lt=Value(0.0), then=F('mean_angle') + Value(TWO_PI)),
+                    default=F('mean_angle'),
+                    output_field=FloatField()
+                )
+            )
+
+            # Convert back to day-of-year
+            self._queryset = self._queryset.annotate(
+                mean_doy=ExpressionWrapper(F('mean_angle_pos') * Value(365.0 / TWO_PI), output_field=FloatField())
+            )
+        else:
+            # SQLite/non-Postgres fallback: linear mean of day-of-year using strftime('%j', timestamp)
+            doy_expr = Cast(
+                Func(Value('%j'), F('cooklog__created_at'), function='strftime'),
+                output_field=FloatField(),
+            )
+            self._queryset = self._queryset.annotate(
+                mean_doy=Avg(doy_expr, filter=cooklog_space_filter)
+            )
+
+        # closeness = min(|mean_doy - date_doy|, 365 - |mean_doy - date_doy|)
+        self._queryset = self._queryset.annotate(
+            delta=Abs(F('mean_doy') - Value(float(date_doy)))
+        )
+        # Use Least only on databases that support it reliably; otherwise fallback to CASE
+        if self._postgres:
+            self._queryset = self._queryset.annotate(
+                closeness=Least(F('delta'), Value(365.0) - F('delta'))
+            )
+        else:
+            # If Least is unavailable, approximate by ordering with CASE
+            self._queryset = self._queryset.annotate(
+                closeness=Case(
+                    When(delta__lte=Value(182.5), then=F('delta')),
+                    default=Value(365.0) - F('delta'),
+                    output_field=FloatField()
+                )
+            )
+
+        # Filter window and ensure at least one cook log
+        self._queryset = self._queryset.filter(cook_count__gte=1, closeness__lte=self._season_window_days)
+
+        # Order by closeness to today
+        self.orderby = ['closeness', 'name']
 
     def _sort_includes(self, *args):
         for x in args:

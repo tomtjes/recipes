@@ -7,7 +7,7 @@ DATABASES = setup_database(  # noqa: F405
     db_engine=os.getenv('TEST_DB_ENGINE'),
     pg_host=os.getenv('TEST_POSTGRES_HOST'),
     pg_port=os.getenv('TEST_POSTGRES_PORT'),
-    pg_user=os.getenv('TEST_POSTGRES_PORT'),
+    pg_user=os.getenv('TEST_POSTGRES_USER'),
     pg_password=os.getenv('TEST_POSTGRES_PASSWORD'),
     pg_db=os.getenv('TEST_POSTGRES_DB')
     )

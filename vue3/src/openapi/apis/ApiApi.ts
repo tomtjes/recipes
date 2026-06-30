@@ -1666,6 +1666,8 @@ export interface ApiRecipeListRequest {
     rating?: number;
     ratingGte?: number;
     ratingLte?: number;
+    seasonon?: Date;
+    season?: boolean;
     sortOrder?: string;
     timescooked?: number;
     timescookedGte?: number;
@@ -11964,6 +11966,14 @@ export class ApiApi extends runtime.BaseAPI {
 
         if (requestParameters['ratingLte'] != null) {
             queryParameters['rating_lte'] = requestParameters['ratingLte'];
+        }
+
+        if (requestParameters['season'] != null) {
+            queryParameters['season'] = requestParameters['season'];
+        }
+
+        if (requestParameters['seasonon'] != null) {
+            queryParameters['seasonon'] = (requestParameters['seasonon'] as any).toISOString().substring(0,10);
         }
 
         if (requestParameters['sortOrder'] != null) {
